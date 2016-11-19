@@ -7,110 +7,7 @@
         <link rel="stylesheet" href="stylesheets/styles.css" media="screen" title="no title" charset="utf-8">
         <link rel="stylesheet" href="stylesheets/github-light.css" media="screen" title="no title" charset="utf-8">
         <style>
-            body {
-                margin: 0;
-                padding: 0;
-                margin-top: 20px;
-                max-width: 1024px;
-                margin-left: auto;
-                margin-right: auto;
-            }
-            #buttons {
-                position: relative;
-                border: solid 1px #aaa;
-                display: inline-block;
-                width: 100%;
-                border-radius: 10px;
-                height: 50px;
-                overflow: hidden;
-                margin-bottom: 20px;
-                box-sizing: border-box;
-            }
-            .button {
-                display: inline-block;
-                background: #ccc;
-                color: black;
-                height: 50px;
-                width: 33%;
-                margin: 0;
-                margin-right: -3px;
-                text-align: center;
-                line-height: 45px;
-                font-size: 25px;
-                cursor: pointer;
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                -khtml-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
-            }
-            .button:hover {
-                background: #eee;
-            }
-            .button:active {
-                background: #ddd;
-            }
-            .button.active {
-                color: white;
-                background: #888;
-            }
-            .button:nth-child(2) {
-                width: 34%;
-                border-left: solid 1px #aaa;
-                border-right: solid 1px #aaa;
-            }
-            .highlight {
-                display: none;
-            }
-            .highlight.active {
-                display: block;
-            }
-            .zone {
-                display: none;
-                position: absolute;
-                width: 100%;
-                height: 100%;
-                left: 0;
-            }
-            .zone.active {
-                display: block;
-            }
-            .zone > h1 {
-                position: absolute;
-                padding: 10px 10px;
-                margin: 0;
-                color: white;
-                right: 0;
-                bottom: 0;
-            }
-            .zone.dynamic {
-                background: rgba(0, 0, 255, 0.1);
-            }
-            .zone.semi {
-                background: rgba(255, 255, 255, 0.1);
-            }
-            .zone.static {
-                background: rgba(255, 0, 0, 0.1);
-            }
-            #normVisContainer{
-                display: inline-block;
-            }
 
-            /* space ship */
-            #background {
-                z-index: -2;
-                position: absolute;
-            }
-            #main {
-                z-index: -1;
-                position: absolute;
-            }
-            #ship {
-                z-index: 0;
-                position: absolute;
-                background: transparent;
-            }
         </style>
     </head>
     <body>
@@ -177,36 +74,11 @@
         <script src="lib/vega-lite.js" charset="utf-8"></script>
         <script src="lib/vega-embed.js" charset="utf-8"></script>
         <script src="lib/jquery-3.1.1.min.js" charset="utf-8"></script>
-        <script src="lib/space_shooter.js"></script>
+        <script src="lib/space_shooter.js" charset="utf-8"></script>
 
         <!-- app logic -->
-        <script>
-            var s = function (sel) { return document.querySelector(sel); };
-            var sId = function (sel) { return document.getElementById(sel); };
-            var removeClass = function (el, clss) {
-                el.className = el.className.replace(new RegExp('\\b' + clss + ' ?\\b', 'g'), '');
-            }
-            var joysticks = {
-                dynamic: {
-                    zone: s('.zone.dynamic'),
-                    color: 'blue',
-                    mode: 'static',
-                    position: {left: '70%', top: '50%'},
-                    multitouch: true
-                },
-                semi: {
-                    zone: s('.zone.semi'),
-                    mode: 'semi',
-                    catchDistance: 150,
-                    color: 'white'
-                },
-                static: {
-                    zone: s('.zone.static'),
-                    mode: 'static',
-                    position: {left: '50%', top: '50%'},
-                    color: 'red'
-                }
-            };
+         <script>
+            // globals
             var joystick;
             var normalizedView;
             var config = {
@@ -214,47 +86,10 @@
                     showTrace: false
                 }
             };
-            window.playground = {
-                events: [],
-                ship: {x: 0, y: 0}
-            };
-
-            // Get debug elements and map them
-            var elDebug = sId('debug');
-            var els = {
-                position: {
-                    x: elDebug.querySelector('.position .x .data'),
-                    y: elDebug.querySelector('.position .y .data')
-                },
-                force: elDebug.querySelector('.force .data'),
-                pressure: elDebug.querySelector('.pressure .data'),
-                distance: elDebug.querySelector('.distance .data'),
-                angle: {
-                    radian: elDebug.querySelector('.angle .radian .data'),
-                    degree: elDebug.querySelector('.angle .degree .data')
-                },
-                direction: {
-                    x: elDebug.querySelector('.direction .x .data'),
-                    y: elDebug.querySelector('.direction .y .data'),
-                    angle: elDebug.querySelector('.direction .angle .data')
-                }
-            };
-
-            // sId('buttons').onclick = createNipple;
-            createJoystick('dynamic');
-            sId('clearNormalizedView').onclick = function(){ clearView(normalizedView); };
-
             var joystickData = null;
-            function bindJoystick () {
-                joystick.on('start', function (evt, data) {
-                    debug(data);
-                }).on('move', function (evt, data) {
-                    debug(data);
-                    joystickData = data;
-                }).on('end', function (evt, data) {
-                    joystickData = null;
-                });
-            }
+        </script>
+        <script src="js/joystick-init.js" charset="utf-8"></script>
+        <script>
 
             function normalizeInput(data) {
                 var normX = data.distance / 50 * Math.cos(data.angle.radian);
@@ -271,7 +106,7 @@
 
                 // retrieve raw data from joystick
                 if (joystickData === null ||
-                    joystickData.distance < 25)     // papaya)
+                    joystickData.distance < 12)     // papaya
                 {
                     joystickData = {
                         angle: {
@@ -301,15 +136,7 @@
             };
             $(document).ready(eventLoop);
 
-            function createJoystick (evt) {
-                var type = typeof evt === 'string' ?
-                    evt : evt.target.getAttribute('data-type');
-                if (joystick) {
-                    joystick.destroy();
-                }
-                joystick = nipplejs.create(joysticks[type]);
-                bindJoystick();
-            }
+
 
             (initUI = function () {
                 $("#normTrace")
@@ -319,24 +146,10 @@
 
             })();
 
-            // Print data into elements
-            function debug (obj) {
 
-                function parseObj(sub, el) {
-                    for (var i in sub) {
-                        if (typeof sub[i] === 'object' && el) {
-                            parseObj(sub[i], el[i]);
-                        } else if (el && el[i]) {
-                            el[i].innerHTML = sub[i].toFixed(0);
-                        }
-                    }
-                }
-                setTimeout(function () {
-                    parseObj(obj, els);
-                }, 0);
-            }
+//=======================================
 
-            var nbEvents = 0;
+//=======================================
 
             var updatePoint = function(view, x, y) {
                 view.data("source")
@@ -362,11 +175,8 @@
                 }
             }
 
-            function updateNormalizedText(normX, normY) {
-                $("#normX").text(normX.toFixed(2));
-                $("#normY").text(normY.toFixed(2));
-            }
 
+            $('#clearNormalizedView').click( function(){ clearView(normalizedView); });
             function clearView(view) {
                 view.data("source").remove(function(d) { return true; });
                 view.update();
