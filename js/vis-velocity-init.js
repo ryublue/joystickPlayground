@@ -4,8 +4,8 @@
 var visVelocity = ( function ($, vg, visHelper) {
 
   var view; 
-  var myInputDomain = [0, 25];
-  var myOuputDomain = [0, 2000];
+  var myInputDomain = [0, 100];
+  var myOuputDomain = [0, 100];
 
   function updateTransferFunction(func) {
     var samples = sampleVelocityFunction(func);

@@ -50,13 +50,13 @@
             Velocity:
             <div id="velocityVis"></div>
             <div>
-                Input velocity, x = <span id="vIn"></span><br/>
+                Input velocity = <span id="vIn"></span><br/>
+                Output velocity = <span id="vOut"></span><br/>
                 <label>
                     Transfer function =
                     <input id="transferFunctionIn" type="text" value="x"/>
                     <button id="updateTransferFunction">Update</button>
-                </label><br/>
-                Output velocity, T(x) = <span id="vOut"></span>
+                </label>
             </div>
         </div>
 
@@ -132,7 +132,7 @@
 
                 // retrieve raw data from joystick
                 if (joystickData === null ||
-                    joystickData.distance < 12)     // papaya
+                    joystickData.distance < 0)     // papaya
                 {
                     joystickData = {
                         angle: { degree: 0, radian: 0},
@@ -157,9 +157,11 @@
                 };
 
                 // calculate ship position
+                var dT = (Date.now() - hist.timestamp) / 1000;
+                var scale = 10;
                 shipTarget = {
-                    x: (trans.x + 1) * 600 / 2,
-                    y: 350 - ((trans.y + 1) * 350 / 2),
+                    x: game.ship.x + trans.x,
+                    y: game.ship.y - trans.y,
                 }
 
                 // indirect absolute mapping
@@ -172,10 +174,9 @@
                 game.ship.addEvent({"type": "move", data: shipTarget});
 
                 // update velocity
-                var dT = (Date.now() - hist.timestamp) / 1000;
                 var velocity = {
-                    input: util.pointDist(hist.normInput, norm)/dT,
-                    output: util.pointDist(hist.output, game.ship)/dT
+                    input: util.pointDist({x: 0 , y: 0}, norm) / dT,
+                    output: util.pointDist(hist.output, game.ship) / dT
                 };
                 visVelocity.updateVelocity(velocity);
 
@@ -210,6 +211,7 @@
                     var func = Function("x", "return " + $('#transferFunctionIn').val());
 
                     visVelocity.updateTransferFunction(func);
+                    config.transferFunction = func;
                 })
             })();
 
