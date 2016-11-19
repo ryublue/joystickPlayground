@@ -96,6 +96,21 @@
             #normVisContainer{
                 display: inline-block;
             }
+
+            /* space ship */
+            #background {
+                z-index: -2;
+                position: absolute;
+            }
+            #main {
+                z-index: -1;
+                position: absolute;
+            }
+            #ship {
+                z-index: 0;
+                position: absolute;
+                background: transparent;
+            }
         </style>
     </head>
     <body>
@@ -135,6 +150,24 @@
             </div>
         </div>
 
+        <div id="spaceshipContainer">
+            <!-- The canvas for the panning background -->
+            <canvas id="background" width="600" height="360">
+                Your browser does not support canvas. Please try again with a different browser.
+            </canvas>
+            <!-- The canvas for all enemy ships and bullets -->
+            <canvas id="main" width="600" height="360">
+            </canvas>
+            <!-- The canvas the ship uses (can only move up
+             one forth the screen.) -->
+            <canvas id="ship" width="600" height="360">
+            </canvas>
+            <div>
+                ship X: <span id="shipX"></span></br>
+                ship Y: <span id="shipY"></span>
+            </div>
+        </div>
+
 
         <!-- JS libraries -->
         <script src="lib/nipplejs.min.js" charset="utf-8"></script>
@@ -143,6 +176,7 @@
         <script src="lib/vega-lite.js" charset="utf-8"></script>
         <script src="lib/vega-embed.js" charset="utf-8"></script>
         <script src="lib/jquery-3.1.1.min.js" charset="utf-8"></script>
+        <script src="lib/space_shooter.js"></script>
 
         <!-- app logic -->
         <script>
@@ -155,6 +189,8 @@
                 dynamic: {
                     zone: s('.zone.dynamic'),
                     color: 'blue',
+                    mode: 'static',
+                    position: {left: '70%', top: '50%'},
                     multitouch: true
                 },
                 semi: {
@@ -176,6 +212,10 @@
                 normalizedView: {
                     showTrace: false
                 }
+            };
+            window.playground = {
+                events: [],
+                ship: {x: 0, y: 0}
             };
 
             // Get debug elements and map them
@@ -202,14 +242,31 @@
             // sId('buttons').onclick = createNipple;
             createJoystick('dynamic');
             sId('clearNormalizedView').onclick = function(){ clearView(normalizedView); };
+            var isEmulateEventStreamOn = false;
+            var lastEvent = {type: "move", data: {"normX": 0, "normY": 0}};
 
             function bindJoystick () {
-                joystick.on('start end', function (evt, data) {
+                joystick.on('start', function (evt, data) {
                     debug(data);
+                    isEmulateEventStreamOn = true;
+                    emulateContinuousEvent();
+                }).on('end', function (evt, data) {
+                    debug(data);
+                    lastEvent = {type: "move", data: {"normX": 0, "normY": 0}};
+                    isEmulateEventStreamOn = true;
+                    emulateContinuousEvent();
                 }).on('move', function (evt, data) {
                     debug(data);
                     updateVis(data);
                 });
+            }
+
+
+            function emulateContinuousEvent() {
+                if (!isEmulateEventStreamOn) return;
+
+                window.setTimeout( emulateContinuousEvent,  1000 / 60);
+                window.playground.events.push(lastEvent);
             }
 
             function createJoystick (evt) {
@@ -280,6 +337,12 @@
                     updatePoint(normalizedView, normX, normY);
                 }
 
+                // save to global
+                var newEvent = {type: "move", data: {"normX": normX, "normY": normY}};
+                window.playground.events.push(newEvent)
+                lastEvent = newEvent;
+                // window.playground.normX = normX;
+                // window.playground.normY = normY;
             }
 
             function updateNormalizedText(normX, normY) {
