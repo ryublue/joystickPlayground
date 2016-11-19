@@ -242,32 +242,63 @@
             // sId('buttons').onclick = createNipple;
             createJoystick('dynamic');
             sId('clearNormalizedView').onclick = function(){ clearView(normalizedView); };
-            var isEmulateEventStreamOn = false;
-            var lastEvent = {type: "move", data: {"normX": 0, "normY": 0}};
 
+            var joystickData = null;
             function bindJoystick () {
                 joystick.on('start', function (evt, data) {
                     debug(data);
-                    isEmulateEventStreamOn = true;
-                    emulateContinuousEvent();
-                }).on('end', function (evt, data) {
-                    debug(data);
-                    lastEvent = {type: "move", data: {"normX": 0, "normY": 0}};
-                    isEmulateEventStreamOn = true;
-                    emulateContinuousEvent();
                 }).on('move', function (evt, data) {
                     debug(data);
-                    updateVis(data);
+                    joystickData = data;
+                }).on('end', function (evt, data) {
+                    joystickData = null;
                 });
             }
 
-
-            function emulateContinuousEvent() {
-                if (!isEmulateEventStreamOn) return;
-
-                window.setTimeout( emulateContinuousEvent,  1000 / 60);
-                window.playground.events.push(lastEvent);
+            function normalizeInput(data) {
+                // if (data.distance < 25) return;
+                var normX = data.distance / 50 * Math.cos(data.angle.radian);
+                var normY = data.distance / 50 * Math.sin(data.angle.radian);
+                return {x: normX, y: normY};
             }
+
+            var samplingRate  = 1000 / 60;
+            var queueNextLoop = (function (callback) { window.setTimeout( callback,  samplingRate);});
+
+            // main event loop
+            function eventLoop() {
+                queueNextLoop(eventLoop)
+
+                // retrieve raw data from joystick
+                if (joystickData === null)
+                {
+                    joystickData = {
+                        angle: {
+                            degree: 0,
+                            radian: 0
+                        },
+                        distance: 0,
+                        position: {
+                            x: 0,
+                            y: 0
+                        }
+                    }
+                }
+
+                // process input signal
+                norm = normalizeInput(joystickData);
+
+                // update vis
+                updateVis(norm);
+
+                // update text
+                $("#normX").text(norm.x.toFixed(2));
+                $("#normY").text(norm.y.toFixed(2));
+
+                // send event to spaceship
+                game.ship.addEvent({"type": "move", data: norm});
+            };
+            $(document).ready(eventLoop);
 
             function createJoystick (evt) {
                 var type = typeof evt === 'string' ?
@@ -320,27 +351,23 @@
 
 
             // update vis
-            function updateVis(data) {
-                if (data.distance < 25) return;
+            function updateVis(norm) {
 
-                var normX = data.distance / 50 * Math.cos(data.angle.radian);
-                var normY = data.distance / 50 * Math.sin(data.angle.radian);
 
-                updateNormalizedText(normX, normY);
 
                 if (config.normalizedView.showTrace)
                 {
-                    addPoint(normalizedView, normX, normY);
+                    addPoint(normalizedView, norm.x, norm.y);
                 }
                 else
                 {
-                    updatePoint(normalizedView, normX, normY);
+                    updatePoint(normalizedView, norm.x, norm.y);
                 }
 
                 // save to global
-                var newEvent = {type: "move", data: {"normX": normX, "normY": normY}};
-                window.playground.events.push(newEvent)
-                lastEvent = newEvent;
+                // var newEvent = {type: "move", data: {"normX": normX, "normY": normY}};
+                // window.playground.events.push(newEvent)
+                // lastEvent = newEvent;
                 // window.playground.normX = normX;
                 // window.playground.normY = normY;
             }
