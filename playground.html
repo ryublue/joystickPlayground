@@ -116,8 +116,7 @@
                 linear: "return d * 5;",
                 stepLinear: "if (Math.abs(d) < 0.5) {\n\t return d * 2;\n} else {\n\t return d * 5;\n}",
                 power: "return Math.sign(d) * Math.pow(4 * d, 2);",
-                sigmoid1: "return  5 * d / Math.sqrt((1 + Math.pow(d, 2)));",
-                sigmoid2: "return  Math.sign(d) * ( 5 / (1 + Math.edp(-((d-0.7) * 15))));"
+                sigmoid: "return  Math.sign(d) * ( 4.5 / (1 + Math.exp(-((d-0.4) * 20))));"
             };
 
         </script>
@@ -172,7 +171,7 @@
                 }
 
                 // process input signal
-                norm = normalizeInput(joystickData);
+                var norm = normalizeInput(joystickData);
 
                 // update normalized input signal vis
                 if (config.normalizedView.showTrace)
@@ -181,20 +180,25 @@
                     visHelper.updatePoint(vis.norm, norm.x, norm.y);
 
                 // apply transfer function
-                var normDist = util.pointDist(util.pointZero, norm);
-                config.transferFunction(normDist),
+                var tDist = config.transferFunction(norm.dist);
+                var scale = tDist / norm.dist;
+                if (isNaN(scale))
+                    scale = 0;
+
                 var trans = {
-                    x: config.transferFunction(norm.x),
-                    y: config.transferFunction(norm.y)
+                    x: scale * norm.x,
+                    y: scale * norm.y,
+                    dist: tDist
                 };
 
                 // calculate ship position
-
-
-
+                var currentShip = {
+                    x: game.ship.x,
+                    y: game.ship.y
+                }
                 shipTarget = {
-                    x: game.ship.x + trans.x,
-                    y: game.ship.y - trans.y,
+                    x: currentShip.x + trans.x,
+                    y: currentShip.y - trans.y,
                 }
 
                 // indirect absolute mapping
@@ -206,11 +210,12 @@
                 // move the ship
                 game.ship.addEvent({"type": "move", data: shipTarget});
 
+
                 // update velocity
                 var dT = (Date.now() - hist.timestamp) / 1000;
                 var velocity = {
                     input: util.pointDist(util.pointZero, norm),
-                    output: util.pointDist(game.ship, hist.output)
+                    output: util.pointDist(util.pointZero, trans)
                 };
                 visVelocity.updateVelocity(velocity);
 
@@ -223,14 +228,21 @@
 
                 // record historical data
                 hist.normInput = norm;
-                hist.output = {x: game.ship.x, y: game.ship.y};
+                hist.output = currentShip;
                 hist.timestamp = Date.now();
+
             };
 
             function normalizeInput(data) {
-                var normX = data.distance / 50 * Math.cos(data.angle.radian);
-                var normY = data.distance / 50 * Math.sin(data.angle.radian);
-                return {x: normX, y: normY};
+                var normDist = data.distance / 50.0;
+                var normX = normDist * Math.cos(data.angle.radian);
+                var normY = normDist * Math.sin(data.angle.radian);
+                return {
+                    x: normX,
+                    y: normY,
+                    angle: data.angle.radian,
+                    dist: normDist
+                };
             }
 
             function updateTransferFunction() {
