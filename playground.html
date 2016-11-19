@@ -34,17 +34,29 @@
             </div>
             <div class="zone dynamic active"></div>
         </div>
-        <div id="normVisContainer">
+        <div class="graphContainer">
             Normalized input:
             <div id="normVis"></div>
-            <br/>
+            <div>
+                normalized X: <span id="normX"></span></br>
+                normalized Y: <span id="normY"></span>
+            </div>
             <label>
                 <input type="checkbox" id="normTrace"/> Show traces
             </label>
             <button id="clearNormalizedView">Clear</button>
+        </div>
+        <div class="graphContainer">
+            Velocity:
+            <div id="velocityVis"></div>
             <div>
-                normalized X: <span id="normX"></span></br>
-                normalized Y: <span id="normY"></span>
+                Input velocity, x = <span id="vIn"></span><br/>
+                <label>
+                    Transfer function =
+                    <input id="transferFunctionIn" type="text" value="x"/>
+                    <button id="updateTransferFunction">Update</button>
+                </label><br/>
+                Output velocity, T(x) = <span id="vOut"></span>
             </div>
         </div>
 
@@ -82,7 +94,8 @@
             var config = {
                 normalizedView: {
                     showTrace: false
-                }
+                },
+                transferFunction: null
             };
 
             // globals
@@ -94,6 +107,7 @@
 
         </script>
 
+        <script src="js/util.js" charset="utf-8"></script> <!-- defines util module -->
         <script src="js/vis-helper.js" charset="utf-8"></script> <!-- defines visHelper module -->
         <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
         <script src="js/vis-normalized-init.js" charset="utf-8"></script>  <!-- initializes vis.norm -->
@@ -101,12 +115,20 @@
 
         <!-- code related to event and input processing -->
         <script>
-            var samplingRate  = 1000 / 60;
+            var samplingRate  = 1000 / 30;
             var queueNextLoop = (function (callback) { window.setTimeout( callback,  samplingRate);});
+
+            config.transferFunction = visVelocity.transferFunctions.identity;
+            var hist = {                    // history
+                normInput: {x: 0, y: 0},
+                output: {x: 0, y: 0},
+                timestamp: Date.now()
+            };
 
             // main event loop
             function eventLoop() {
-                window.requestAnimFrame(eventLoop)
+                // window.requestAnimFrame(eventLoop);
+                queueNextLoop(eventLoop);
 
                 // retrieve raw data from joystick
                 if (joystickData === null ||
@@ -128,12 +150,46 @@
                 else
                     visHelper.updatePoint(vis.norm, norm.x, norm.y);
 
+                // apply transfer function
+                var trans = {
+                    x: config.transferFunction(norm.x),
+                    y: config.transferFunction(norm.y)
+                };
+
+                // calculate ship position
+                shipTarget = {
+                    x: (trans.x + 1) * 600 / 2,
+                    y: 350 - ((trans.y + 1) * 350 / 2),
+                }
+
+                // indirect absolute mapping
+                // shipTarget = {
+                //     x: (trans.x + 1) * 600 / 2,
+                //     y: 350 - ((trans.y + 1) * 350 / 2),
+                // }
+
+                // move the ship
+                game.ship.addEvent({"type": "move", data: shipTarget});
+
+                // update velocity
+                var dT = (Date.now() - hist.timestamp) / 1000;
+                var velocity = {
+                    input: util.pointDist(hist.normInput, norm)/dT,
+                    output: util.pointDist(hist.output, game.ship)/dT
+                };
+                visVelocity.updateVelocity(velocity);
+
+
                 // update text
                 $("#normX").text(norm.x.toFixed(2));
                 $("#normY").text(norm.y.toFixed(2));
+                $("#vIn").text(velocity.input.toFixed(2));
+                $("#vOut").text(velocity.output.toFixed(2));
 
-                // send event to spaceship
-                game.ship.addEvent({"type": "move", data: norm});
+                // record historical data
+                hist.normInput = norm;
+                hist.output = {x: game.ship.x, y: game.ship.y};
+                hist.timestamp = Date.now();
             };
 
             function normalizeInput(data) {
@@ -150,6 +206,11 @@
                     .click(function() { config.normalizedView.showTrace = this.checked;} );
 
                 $('#clearNormalizedView').click( function(){ visHelper.clearView(vis.norm); });
+                $('#updateTransferFunction').click( function() {
+                    var func = Function("x", "return " + $('#transferFunctionIn').val());
+
+                    visVelocity.updateTransferFunction(func);
+                })
             })();
 
             // fire the main event loop
