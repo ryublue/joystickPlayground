@@ -78,25 +78,23 @@
 
         <!-- app logic -->
          <script>
-            // globals
-            var joystick;
-            var normalizedView;
+            // shared configuration object
             var config = {
                 normalizedView: {
                     showTrace: false
                 }
             };
-            var joystickData = null;
+
+            // globals
+            var joystick;               // joystick object
+            var joystickData = null;    // data from the joystick widget (see joystick-init.js)
+            var normalizedView;         // vega view object for normalized view
+
+
         </script>
         <script src="js/joystick-init.js" charset="utf-8"></script>
         <script src="js/vis-helper.js" charset="utf-8"></script> <!-- defines visHelper module -->
         <script>
-
-            function normalizeInput(data) {
-                var normX = data.distance / 50 * Math.cos(data.angle.radian);
-                var normY = data.distance / 50 * Math.sin(data.angle.radian);
-                return {x: normX, y: normY};
-            }
 
             var samplingRate  = 1000 / 60;
             var queueNextLoop = (function (callback) { window.setTimeout( callback,  samplingRate);});
@@ -110,23 +108,20 @@
                     joystickData.distance < 12)     // papaya
                 {
                     joystickData = {
-                        angle: {
-                            degree: 0,
-                            radian: 0
-                        },
+                        angle: { degree: 0, radian: 0},
                         distance: 0,
-                        position: {
-                            x: 0,
-                            y: 0
-                        }
+                        position: {x: 0,y: 0}
                     }
                 }
 
                 // process input signal
                 norm = normalizeInput(joystickData);
 
-                // update vis
-                updateVis(norm);
+                // update normalized input signal vis
+                if (config.normalizedView.showTrace)
+                    visHelper.addPoint(normalizedView, norm.x, norm.y);
+                else
+                    visHelper.updatePoint(normalizedView, norm.x, norm.y);
 
                 // update text
                 $("#normX").text(norm.x.toFixed(2));
@@ -135,36 +130,23 @@
                 // send event to spaceship
                 game.ship.addEvent({"type": "move", data: norm});
             };
-            $(document).ready(eventLoop);
+
+            function normalizeInput(data) {
+                var normX = data.distance / 50 * Math.cos(data.angle.radian);
+                var normY = data.distance / 50 * Math.sin(data.angle.radian);
+                return {x: normX, y: normY};
+            }
 
 
-
-            (initUI = function () {
+            // initialize UI
+            (function () {
                 $("#normTrace")
                     .prop("checked", config.normalizedView.showTrace)
                     .click(function() { config.normalizedView.showTrace = this.checked;} );
-
-
             })();
 
-
-
-
-
-
-
-            // update vis
-            function updateVis(norm) {
-                if (config.normalizedView.showTrace)
-                {
-                    visHelper.addPoint(normalizedView, norm.x, norm.y);
-                }
-                else
-                {
-                    visHelper.updatePoint(normalizedView, norm.x, norm.y);
-                }
-            }
-
+            // fire the main event loop
+            $(document).ready(eventLoop);
 
         </script>
 
