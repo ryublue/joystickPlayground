@@ -6,6 +6,8 @@ var visVelocity = ( function ($, vg, visHelper) {
   var view; 
   var myInputDomain = [0, 1];
   var myOuputDomain = [0, 5];
+  var cCounter = 0;
+  const MAXCURSOR = 100;  // maximum number of history trace
 
   function updateTransferFunction(func) {
     var samples = sampleVelocityFunction(func);
@@ -17,8 +19,10 @@ var visVelocity = ( function ($, vg, visHelper) {
 
    function updateVelocity(v) {
     view.data("source")
-      .remove(function(d) { return (d.hint == "cursor"); })
-      .insert([{"input": Math.abs(v.input), "output": Math.abs(v.output), "hint": "cursor"}]);
+      .remove(function(d) { 
+        return (d.hint == "cursor" && d.cursorId < cCounter - MAXCURSOR); 
+      })
+      .insert([{"input": Math.abs(v.input), "output": Math.abs(v.output), "hint": "cursor", "cursorId": ++cCounter}]);
     view.update();
     
    }
