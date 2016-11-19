@@ -111,11 +111,6 @@
                 norm: null,             // - normalized view (initialized in vis-normalized-init.js)
                 velo: null              // - velocity view (initialized in vis-velocity-init.js)
             };
-            var hist = {            // history log
-                normInput: {x: 0, y: 0},
-                output: {x: 0, y: 0},
-                timestamp: Date.now()
-            };
 
             // pre-defined transfer functions
             var transferFunctions = {
@@ -136,7 +131,6 @@
         <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
         <script src="js/vis-normalized-init.js" charset="utf-8"></script>  <!-- initializes vis.norm -->
         <script src="js/vis-velocity-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
-        <script src="js/editor-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
 
 
         <!-- code related to event and input processing -->
@@ -200,17 +194,13 @@
                 };
                 visVelocity.updateVelocity(velocity);
 
+
                 // update text
                 $("#normX").text(norm.x.toFixed(2));
                 $("#normY").text(norm.y.toFixed(2));
                 $("#vIn").text(velocity.input.toFixed(2));
                 $("#vOut").text(velocity.output.toFixed(2));
 
-
-                // record historical data
-                hist.normInput = norm;
-                hist.output = shipNow;
-                hist.timestamp = Date.now();
 
             };
         </script>
