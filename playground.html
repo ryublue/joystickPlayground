@@ -41,10 +41,10 @@
         </div>
         <div class="graphContainer">
             Transfer function:
-            <div id="velocityVis"></div>
+            <div id="transferVis"></div>
             <div>
-                Normalized joystick distance = <span id="vIn"></span><br/>
-                Ship movement distance = <span id="vOut"></span><br/>
+                Normalized joystick distance = <span id="distanceInput"></span><br/>
+                Ship movement distance = <span id="distanceOutput"></span><br/>
             </div>
         </div>
         <div class="editorContainer">
@@ -108,8 +108,7 @@
             var joystick;               // joystick object
             var joystickData = null;    // data from the joystick widget (initialized in joystick-init.js)
             var vis = {                 // vega view objects
-                norm: null,             // - normalized view (initialized in vis-normalized-init.js)
-                velo: null              // - velocity view (initialized in vis-velocity-init.js)
+                norm: null             // - normalized view (initialized in vis-normalized-init.js)
             };
 
             // pre-defined transfer functions
@@ -130,7 +129,7 @@
         <script src="js/vis-helper.js" charset="utf-8"></script> <!-- defines visHelper module -->
         <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
         <script src="js/vis-normalized-init.js" charset="utf-8"></script>  <!-- initializes vis.norm -->
-        <script src="js/vis-transfer-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
+        <script src="js/vis-transfer-init.js" charset="utf-8"></script>  <!-- initializes transfer function view -->
 
 
         <!-- code related to event and input processing -->
@@ -183,29 +182,39 @@
                 game.ship.addEvent({"type": "move", data: shipNext});
 
 
-                // update vis
+
+
+                // update UI
+                var distanceLog = {
+                    input: util.pointDist(util.pointZero, norm),
+                    output: util.pointDist(util.pointZero, translation)
+                };
+                // ui.updateUI(norm, distanceLog);  // TODO
+
+
+                visTransfer.addDistanceLog(distanceLog);
+                // visNorm.addPoint(norm);  // TODO
+
+
                 if (config.normalizedView.showTrace)
                     visHelper.addPoint(vis.norm, norm.x, norm.y);
                 else
                     visHelper.updatePoint(vis.norm, norm.x, norm.y);
-                var velocity = {
-                    input: util.pointDist(util.pointZero, norm),
-                    output: util.pointDist(util.pointZero, translation)
-                };
-                visTransfer.updateVelocity(velocity);
+
+
 
 
                 // update text
                 $("#normX").text(norm.x.toFixed(2));
                 $("#normY").text(norm.y.toFixed(2));
-                $("#vIn").text(velocity.input.toFixed(2));
-                $("#vOut").text(velocity.output.toFixed(2));
+                $("#distanceInput").text(distanceLog.input.toFixed(2));
+                $("#distanceOutput").text(distanceLog.output.toFixed(2));
 
 
             };
         </script>
 
-        <script src="js/ui-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
+        <script src="js/ui-init.js" charset="utf-8"></script>  <!-- initializes all UI -->
 
     </body>
 </html>

@@ -6,32 +6,28 @@ var visTransfer = ( function ($, vg, visHelper) {
   var cCounter = 0;
   const MAXCURSOR = 100;  // maximum number of history trace
 
-  function updateTransferFunction(func) {
-    var samples = sampleVelocityFunction(func);
+  // public: set transfer function
+  function setTransferFunction(func) {
+    var samples = sampleFromFunction(func);
     view.data("source")
       .remove(function(d) { return (d.hint != "cursor"); })
       .insert(samples);
     view.update();
   }
 
-   function updateVelocity(v) {
+  // public: add distance to the plot
+  function addDistanceLog(v) {
     view.data("source")
       .remove(function(d) { 
         return (d.hint == "cursor" && d.cursorId < cCounter - MAXCURSOR); 
       })
       .insert([{"input": Math.abs(v.input), "output": Math.abs(v.output), "hint": "cursor", "cursorId": ++cCounter}]);
+
     view.update();
-    
-   }
-
-  // transfer functions
-  var transferFunctions = {};
-  transferFunctions.identity = function(x){return x;}; 
-  transferFunctions.ease = function(x){return (x<0.5) ? x * 2 : x * 5;}; 
+  }
   
-
   // sampling from the transfer function for plotting
-  function sampleVelocityFunction(func) {
+  function sampleFromFunction(func) {
     var count = 100;
     var scale = myInputDomain[1] / count;
     var data = new Array(count);
@@ -91,15 +87,13 @@ var visTransfer = ( function ($, vg, visHelper) {
       actions: false
     }
     
-    vg.embed("#velocityVis", embedSpec, function(error, result) {
-      vis.velo = result.view;
-      view = vis.velo;
+    vg.embed("#transferVis", embedSpec, function(error, result) {
+      view = result.view;
     });
 
     var api = {};
-    api.updateTransferFunction = updateTransferFunction;
-    api.transferFunctions = transferFunctions;
-    api.updateVelocity = updateVelocity;
+    api.setTransferFunction = setTransferFunction;
+    api.addDistanceLog = addDistanceLog;
     return api;
 
 } )(jQuery, vg, visHelper);

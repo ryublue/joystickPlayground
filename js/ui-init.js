@@ -17,7 +17,7 @@
     var updateTransferFunction = function () {
         var funcBody = config.tfEditor.getValue();
         var func = Function("d", funcBody);
-        visTransfer.updateTransferFunction(func);
+        visTransfer.setTransferFunction(func);
         config.transferFunction = func;
     }
 
