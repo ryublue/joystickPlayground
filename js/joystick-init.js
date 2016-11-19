@@ -18,6 +18,7 @@ function bindJoystick () {
         debug(data);
         joystickData = data;
     }).on('end', function (evt, data) {
+        debug(data);
         joystickData = null;
     });
 }

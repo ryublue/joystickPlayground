@@ -4,8 +4,8 @@
 var visVelocity = ( function ($, vg, visHelper) {
 
   var view; 
-  var myInputDomain = [0, 100];
-  var myOuputDomain = [0, 100];
+  var myInputDomain = [0, 1];
+  var myOuputDomain = [0, 5];
 
   function updateTransferFunction(func) {
     var samples = sampleVelocityFunction(func);
@@ -18,7 +18,7 @@ var visVelocity = ( function ($, vg, visHelper) {
    function updateVelocity(v) {
     view.data("source")
       .remove(function(d) { return (d.hint == "cursor"); })
-      .insert([{"input": v.input, "output": v.output, "hint": "cursor"}]);
+      .insert([{"input": Math.abs(v.input), "output": Math.abs(v.output), "hint": "cursor"}]);
     view.update();
     
    }
@@ -26,6 +26,7 @@ var visVelocity = ( function ($, vg, visHelper) {
   // transfer functions
   var transferFunctions = {};
   transferFunctions.identity = function(x){return x;}; 
+  transferFunctions.ease = function(x){return (x<0.5) ? x * 2 : x * 5;}; 
   
 
   // sampling from the transfer function for plotting
@@ -41,7 +42,7 @@ var visVelocity = ( function ($, vg, visHelper) {
 
 
   // plot specification
-  var initValues = sampleVelocityFunction(function(x){return x;})
+  var initValues = [{"input": 1, "output": 1}]
   initValues.push({"input": 0, "output": 0, "hint": "cursor"});
   vlSpec = {
       "data": {"values": initValues },
@@ -54,13 +55,13 @@ var visVelocity = ( function ($, vg, visHelper) {
               "field": "input",
               "type": "quantitative",
               "scale": {"domain": myInputDomain, "range": "width", "zero": false},
-              "axis": {"ticks": 10}
+              "axis": {"ticks": 10, "title": "Normalized joystick distance"}
             },
             "y": {
               "field": "output",
               "type": "quantitative",
               "scale": {"domain": myOuputDomain, "range": "width", "zero": false},
-              "axis": {"ticks": 10}
+              "axis": {"ticks": 10, "title": "Ship movement distance"}
             }
           }
         },
@@ -72,13 +73,11 @@ var visVelocity = ( function ($, vg, visHelper) {
               "field": "input",
               "type": "quantitative",
               "scale": {"domain": myInputDomain, "range": "width", "zero": false},
-              "axis": {"ticks": 10}
             },
             "y": {
               "field": "output",
               "type": "quantitative",
               "scale": {"domain": myOuputDomain, "range": "width", "zero": false},
-              "axis": {"ticks": 10}
             }
           }
         }

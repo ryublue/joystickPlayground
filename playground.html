@@ -15,14 +15,7 @@
         <div id="zone_joystick">
             <div id="debug">
                 <ul>
-                    <li class="position">
-                        input space position (px) :
-                        <ul>
-                            <li class="x">x : <span class='data'></span></li>
-                            <li class="y">y : <span class='data'></span></li>
-                        </ul>
-                    </li>
-                    <li class="distance">distance (px) : <span class='data'></span></li>
+                    <li class="distance">physical distance from the center (px) : <span class='data'></span></li>
                     <li class="angle">
                         angle :
                         <ul>
@@ -47,30 +40,32 @@
             <button id="clearNormalizedView">Clear</button>
         </div>
         <div class="graphContainer">
-            Velocity:
+            Transfer function:
             <div id="velocityVis"></div>
             <div>
-                Input velocity = <span id="vIn"></span><br/>
-                Output velocity = <span id="vOut"></span><br/>
-                <label>
-                    Transfer function =
-                    <input id="transferFunctionIn" type="text" value="x"/>
-                    <button id="updateTransferFunction">Update</button>
-                </label>
+                Normalized joystick distance = <span id="vIn"></span><br/>
+                Ship movement distance = <span id="vOut"></span><br/>
             </div>
+        </div>
+        <div class="graphContainer">
+            <label>
+                Transfer function:<br/>
+                <div id="transferFunctionEditor"></div>
+                <button id="updateTransferFunction">Update</button>
+            </label>
         </div>
 
         <div id="spaceshipContainer">
             <!-- The canvas for the panning background -->
-            <canvas id="background" width="600" height="360">
+            <canvas id="background" width="300" height="300">
                 Your browser does not support canvas. Please try again with a different browser.
             </canvas>
             <!-- The canvas for all enemy ships and bullets -->
-            <canvas id="main" width="600" height="360">
+            <canvas id="main" width="300" height="300">
             </canvas>
             <!-- The canvas the ship uses (can only move up
              one forth the screen.) -->
-            <canvas id="ship" width="600" height="360">
+            <canvas id="ship" width="300" height="300">
             </canvas>
             <div>
                 ship X: <span id="shipX"></span></br>
@@ -95,7 +90,8 @@
                 normalizedView: {
                     showTrace: false
                 },
-                transferFunction: null
+                transferFunction: null,
+                tfEditor: null
             };
 
             // globals
@@ -105,6 +101,12 @@
             vis.norm = null         // vega view object for normalized view (initialized in vis-normalized-init.js)
             vis.velo = null         // vega view object for velocity view (initialized in vis-velocity-init.js)
 
+            var transferFunctions = {
+                identity: "return x;",
+                step: "if (Math.abs(x) < 0.5) {return Math.sign(x) * 0.5;} else {return Math.sign(x) * 2.5;}",
+                ease: "if (Math.abs(x) < 0.5) {return x * 2;} else {return x * 5;}"
+            };
+
         </script>
 
         <script src="js/util.js" charset="utf-8"></script> <!-- defines util module -->
@@ -113,12 +115,23 @@
         <script src="js/vis-normalized-init.js" charset="utf-8"></script>  <!-- initializes vis.norm -->
         <script src="js/vis-velocity-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
 
+
+        <!-- transfer function editor -->
+        <script src="lib/ace/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+        <script>
+          var editor = ace.edit("transferFunctionEditor");
+          editor.setTheme("ace/theme/xcode");
+          editor.getSession().setMode("ace/mode/javascript");
+
+          // remember the editor in our namespace
+          config.tfEditor = editor;
+        </script>
+
         <!-- code related to event and input processing -->
         <script>
             var samplingRate  = 1000 / 30;
             var queueNextLoop = (function (callback) { window.setTimeout( callback,  samplingRate);});
 
-            config.transferFunction = visVelocity.transferFunctions.identity;
             var hist = {                    // history
                 normInput: {x: 0, y: 0},
                 output: {x: 0, y: 0},
@@ -157,6 +170,7 @@
                 };
 
                 // calculate ship position
+
                 var dT = (Date.now() - hist.timestamp) / 1000;
                 var scale = 10;
                 shipTarget = {
@@ -175,8 +189,8 @@
 
                 // update velocity
                 var velocity = {
-                    input: util.pointDist({x: 0 , y: 0}, norm) / dT,
-                    output: util.pointDist(hist.output, game.ship) / dT
+                    input: norm.x,
+                    output: game.ship.x - hist.output.x
                 };
                 visVelocity.updateVelocity(velocity);
 
@@ -199,24 +213,35 @@
                 return {x: normX, y: normY};
             }
 
+            function updateTransferFunction() {
+                var funcBody = config.tfEditor.getValue();
+                var func = Function("x", funcBody);
+                visVelocity.updateTransferFunction(func);
+                config.transferFunction = func;
+            }
 
             // initialize UI
             (function () {
+
+                // event bindings
                 $("#normTrace")
                     .prop("checked", config.normalizedView.showTrace)
                     .click(function() { config.normalizedView.showTrace = this.checked;} );
 
                 $('#clearNormalizedView').click( function(){ visHelper.clearView(vis.norm); });
-                $('#updateTransferFunction').click( function() {
-                    var func = Function("x", "return " + $('#transferFunctionIn').val());
+                $('#updateTransferFunction').click( function() { updateTransferFunction(); });
 
-                    visVelocity.updateTransferFunction(func);
-                    config.transferFunction = func;
-                })
+                // set initial transfer function
+                window.setTimeout( function() {
+                    config.tfEditor.setValue(transferFunctions.identity);
+                    updateTransferFunction();
+
+                    // fire the main event loop
+                    $(document).ready(eventLoop);
+                }, 100);
             })();
 
-            // fire the main event loop
-            $(document).ready(eventLoop);
+
 
         </script>
 
