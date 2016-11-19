@@ -87,15 +87,20 @@
 
             // globals
             var joystick;               // joystick object
-            var joystickData = null;    // data from the joystick widget (see joystick-init.js)
-            var normalizedView;         // vega view object for normalized view
-
+            var joystickData = null;    // data from the joystick widget (initialized in joystick-init.js)
+            var vis = {};
+            vis.norm = null         // vega view object for normalized view (initialized in vis-normalized-init.js)
+            vis.velo = null         // vega view object for velocity view (initialized in vis-velocity-init.js)
 
         </script>
-        <script src="js/joystick-init.js" charset="utf-8"></script>
-        <script src="js/vis-helper.js" charset="utf-8"></script> <!-- defines visHelper module -->
-        <script>
 
+        <script src="js/vis-helper.js" charset="utf-8"></script> <!-- defines visHelper module -->
+        <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
+        <script src="js/vis-normalized-init.js" charset="utf-8"></script>  <!-- initializes vis.norm -->
+        <script src="js/vis-velocity-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
+
+        <!-- code related to event and input processing -->
+        <script>
             var samplingRate  = 1000 / 60;
             var queueNextLoop = (function (callback) { window.setTimeout( callback,  samplingRate);});
 
@@ -119,9 +124,9 @@
 
                 // update normalized input signal vis
                 if (config.normalizedView.showTrace)
-                    visHelper.addPoint(normalizedView, norm.x, norm.y);
+                    visHelper.addPoint(vis.norm, norm.x, norm.y);
                 else
-                    visHelper.updatePoint(normalizedView, norm.x, norm.y);
+                    visHelper.updatePoint(vis.norm, norm.x, norm.y);
 
                 // update text
                 $("#normX").text(norm.x.toFixed(2));
@@ -144,7 +149,7 @@
                     .prop("checked", config.normalizedView.showTrace)
                     .click(function() { config.normalizedView.showTrace = this.checked;} );
 
-                $('#clearNormalizedView').click( function(){ visHelper.clearView(normalizedView); });
+                $('#clearNormalizedView').click( function(){ visHelper.clearView(vis.norm); });
             })();
 
             // fire the main event loop

@@ -16,40 +16,6 @@ var visHelper = ( function ($) {
         view.update();
     }
 
-
-    
-
-
-    // visualiztion for normalized input
-    vlSpec = {
-      "data": { "name": "normalizedInput", "values": [ {"x": 0,"y": 0, "id": "position"} ] },
-      "mark": "point",
-      "encoding": {
-        "x": {
-          "field": "x",
-          "type": "quantitative",
-          "scale": {"domain": [-1, 1], "range": "width", "zero": false},
-          "axis": {"ticks": 10}
-        },
-        "y": {
-          "field": "y",
-          "type": "quantitative",
-          "scale": {"domain": [-1, 1], "range": "width", "zero": false},
-          "axis": {"ticks": 10}
-        }
-      }
-    }
-
-    var embedSpec = {
-      mode: "vega-lite",
-      spec: vlSpec,
-      actions: false
-    }
-    vg.embed("#normVis", embedSpec, function(error, result) {
-      normalizedView = result.view;
-    });
-
-
     var visHelper = {};
     visHelper.updatePoint = updatePoint;
     visHelper.addPoint = addPoint;
