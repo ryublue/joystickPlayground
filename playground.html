@@ -50,7 +50,8 @@
         <div class="editorContainer">
             <label>
                 Transfer function:
-                <select id="tfSel"></select>
+                <select id="tfSel"></select><br/>
+                Note: d is the normalized distance
                 <div id="transferFunctionEditor"></div>
                 <button id="updateTransferFunction">Update</button>
             </label>
@@ -111,16 +112,17 @@
 
             var transferFunctions = {
                 identity: "return d;",
-                constant: "if (Math.abs(d) > 0) {\n\t return Math.sign(d) * 2.5;\n} else {\n\t return 0;\n}",
-                stepConstant: "if (Math.abs(d) < 0.5) {\n\t return Math.sign(d) * 2;\n} else {\n\t return Math.sign(d) * 5;\n}",
-                linear: "return d * 5;",
-                stepLinear: "if (Math.abs(d) < 0.5) {\n\t return d * 2;\n} else {\n\t return d * 5;\n}",
+                constant: "if (Math.abs(d) > 0) {\n\treturn Math.sign(d) * 4.5;\n} else {\n\treturn 0;\n}",
+                stepConstant: "if (Math.abs(d) < 0.3) {\n\treturn Math.sign(d) * 2;\n} else {\n\treturn Math.sign(d) * 4.5;\n}",
+                linear: "return d * 4.5;",
+                stepLinear: "if (Math.abs(d) < 0.5) {\n\treturn d * 2;\n} else {\n\treturn d * 5;\n}",
                 power: "return Math.sign(d) * Math.pow(4 * d, 2);",
-                sigmoid: "return  Math.sign(d) * ( 4.5 / (1 + Math.exp(-((d-0.4) * 20))));"
+                sigmoid: "var a = 4.5;\nvar b = 0.4;\nvar c = 20;\nreturn Math.sign(d) * \n( a / (1 + Math.exp(-((d - b) * c))));"
             };
 
         </script>
 
+        <!-- initializers -->
         <script src="js/util.js" charset="utf-8"></script> <!-- defines util module -->
         <script src="js/vis-helper.js" charset="utf-8"></script> <!-- defines visHelper module -->
         <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
@@ -136,7 +138,7 @@
           var session = editor.getSession()
           session.setMode("ace/mode/javascript");
           session.setUseWrapMode(true);
-          session.setWrapLimitRange(30, 35);
+          session.setWrapLimitRange(40, 45);
           editor.$blockScrolling = Infinity
 
           // remember the editor in our namespace
@@ -156,8 +158,8 @@
 
             // main event loop
             function eventLoop() {
-                // window.requestAnimFrame(eventLoop);
-                queueNextLoop(eventLoop);
+                // window.requestAnimFrame(eventLoop);     // event loop match the rendering frame rate
+                queueNextLoop(eventLoop);            // slower event loop
 
                 // retrieve raw data from joystick
                 if (joystickData === null ||
