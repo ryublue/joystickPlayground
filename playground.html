@@ -49,13 +49,14 @@
         </div>
         <div class="graphContainer">
             <label>
-                Transfer function:<br/>
+                Transfer function:
+                <select id="tfSel"></select>
                 <div id="transferFunctionEditor"></div>
                 <button id="updateTransferFunction">Update</button>
             </label>
         </div>
 
-        <div id="spaceshipContainer">
+        <div class="outputContainer">
             <!-- The canvas for the panning background -->
             <canvas id="background" width="300" height="300">
                 Your browser does not support canvas. Please try again with a different browser.
@@ -67,10 +68,13 @@
              one forth the screen.) -->
             <canvas id="ship" width="300" height="300">
             </canvas>
+        </div>
+        <div class="graphContainer">
             <div>
                 ship X: <span id="shipX"></span></br>
                 ship Y: <span id="shipY"></span>
             </div>
+            <button id="resetShip">Reset ship</button>
         </div>
 
 
@@ -91,7 +95,11 @@
                     showTrace: false
                 },
                 transferFunction: null,
-                tfEditor: null
+                tfEditor: null,
+                ship: {
+                    start: null    // populate by shape_shooter.js
+                }
+
             };
 
             // globals
@@ -103,8 +111,11 @@
 
             var transferFunctions = {
                 identity: "return x;",
-                step: "if (Math.abs(x) < 0.5) {return Math.sign(x) * 0.5;} else {return Math.sign(x) * 2.5;}",
-                ease: "if (Math.abs(x) < 0.5) {return x * 2;} else {return x * 5;}"
+                constant: "if (Math.abs(x) > 0) {\n\t return Math.sign(x) * 2.5;\n} else {\n\t return 0;\n}",
+                stepConstant: "if (Math.abs(x) < 0.5) {\n\t return Math.sign(x) * 2;\n} else {\n\t return Math.sign(x) * 5;\n}",
+                linear: "return x * 5;",
+                stepLinear: "if (Math.abs(x) < 0.5) {\n\t return x * 2;\n} else {\n\t return x * 5;\n}",
+                power: "return Math.sign(x) * Math.pow(4 * x, 2);"
             };
 
         </script>
@@ -121,7 +132,11 @@
         <script>
           var editor = ace.edit("transferFunctionEditor");
           editor.setTheme("ace/theme/xcode");
-          editor.getSession().setMode("ace/mode/javascript");
+          var session = editor.getSession()
+          session.setMode("ace/mode/javascript");
+          session.setUseWrapMode(true);
+          session.setWrapLimitRange(30, 35);
+          editor.$blockScrolling = Infinity
 
           // remember the editor in our namespace
           config.tfEditor = editor;
@@ -223,6 +238,16 @@
             // initialize UI
             (function () {
 
+                // fill options for transfer functions
+                $.each(transferFunctions, function (name, funcBody) {
+                    $('#tfSel').append($('<option>', {value: name, text: name}));
+                });
+                $('#tfSel').change(function (e) {
+                    var tfName = this.options[e.target.selectedIndex].text
+                    config.tfEditor.setValue(transferFunctions[tfName]);
+                });
+
+
                 // event bindings
                 $("#normTrace")
                     .prop("checked", config.normalizedView.showTrace)
@@ -230,6 +255,9 @@
 
                 $('#clearNormalizedView').click( function(){ visHelper.clearView(vis.norm); });
                 $('#updateTransferFunction').click( function() { updateTransferFunction(); });
+                $("#resetShip").click( function() {
+                    game.ship.addEvent({"type": "move", data: {x: config.ship.start.x, y: config.ship.start.y}});
+                });
 
                 // set initial transfer function
                 window.setTimeout( function() {
