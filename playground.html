@@ -138,6 +138,7 @@
             <div class="zone dynamic active"></div>
         </div>
         <div id="normVisContainer">
+            Normalized input:
             <div id="normVis"></div>
             <br/>
             <label>
@@ -256,7 +257,6 @@
             }
 
             function normalizeInput(data) {
-                // if (data.distance < 25) return;
                 var normX = data.distance / 50 * Math.cos(data.angle.radian);
                 var normY = data.distance / 50 * Math.sin(data.angle.radian);
                 return {x: normX, y: normY};
@@ -267,10 +267,11 @@
 
             // main event loop
             function eventLoop() {
-                queueNextLoop(eventLoop)
+                window.requestAnimFrame(eventLoop)
 
                 // retrieve raw data from joystick
-                if (joystickData === null)
+                if (joystickData === null ||
+                    joystickData.distance < 25)     // papaya)
                 {
                     joystickData = {
                         angle: {
@@ -349,12 +350,8 @@
                 view.update()
             }
 
-
             // update vis
             function updateVis(norm) {
-
-
-
                 if (config.normalizedView.showTrace)
                 {
                     addPoint(normalizedView, norm.x, norm.y);
@@ -363,13 +360,6 @@
                 {
                     updatePoint(normalizedView, norm.x, norm.y);
                 }
-
-                // save to global
-                // var newEvent = {type: "move", data: {"normX": normX, "normY": normY}};
-                // window.playground.events.push(newEvent)
-                // lastEvent = newEvent;
-                // window.playground.normX = normX;
-                // window.playground.normY = normY;
             }
 
             function updateNormalizedText(normX, normY) {
