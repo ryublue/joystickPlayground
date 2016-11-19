@@ -130,7 +130,7 @@
         <script src="js/vis-helper.js" charset="utf-8"></script> <!-- defines visHelper module -->
         <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
         <script src="js/vis-normalized-init.js" charset="utf-8"></script>  <!-- initializes vis.norm -->
-        <script src="js/vis-velocity-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
+        <script src="js/vis-transfer-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
 
 
         <!-- code related to event and input processing -->
@@ -192,7 +192,7 @@
                     input: util.pointDist(util.pointZero, norm),
                     output: util.pointDist(util.pointZero, translation)
                 };
-                visVelocity.updateVelocity(velocity);
+                visTransfer.updateVelocity(velocity);
 
 
                 // update text

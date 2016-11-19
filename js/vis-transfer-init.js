@@ -1,7 +1,4 @@
-// visualiztion for normalized input
-// use globally defined vis.velo
-
-var visVelocity = ( function ($, vg, visHelper) {
+var visTransfer = ( function ($, vg, visHelper) {
 
   var view; 
   var myInputDomain = [0, 1];
