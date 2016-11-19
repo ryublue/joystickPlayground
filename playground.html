@@ -87,8 +87,9 @@
         <script src="lib/vega-embed.js" charset="utf-8"></script>
         <script src="lib/jquery-3.1.1.min.js" charset="utf-8"></script>
         <script src="lib/space_shooter.js" charset="utf-8"></script>
+        <script src="lib/ace/src-min-noconflict/ace.js" charset="utf-8"></script>
 
-        <!-- app logic -->
+        <!-- globals -->
          <script>
             // shared configuration object
             var config = {
@@ -96,9 +97,9 @@
                     showTrace: false
                 },
                 transferFunction: null,
-                tfEditor: null,
+                tfEditor: null,    // initialized in editor-init.js
                 ship: {
-                    start: null    // populate by shape_shooter.js
+                    start: null    // initialized in shape_shooter.js
                 }
 
             };
@@ -106,10 +107,17 @@
             // globals
             var joystick;               // joystick object
             var joystickData = null;    // data from the joystick widget (initialized in joystick-init.js)
-            var vis = {};
-            vis.norm = null         // vega view object for normalized view (initialized in vis-normalized-init.js)
-            vis.velo = null         // vega view object for velocity view (initialized in vis-velocity-init.js)
+            var vis = {                 // vega view objects
+                norm: null,             // - normalized view (initialized in vis-normalized-init.js)
+                velo: null              // - velocity view (initialized in vis-velocity-init.js)
+            };
+            var hist = {            // history log
+                normInput: {x: 0, y: 0},
+                output: {x: 0, y: 0},
+                timestamp: Date.now()
+            };
 
+            // pre-defined transfer functions
             var transferFunctions = {
                 identity: "return d;",
                 constant: "if (Math.abs(d) > 0) {\n\treturn Math.sign(d) * 4.5;\n} else {\n\treturn 0;\n}",
@@ -128,42 +136,21 @@
         <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
         <script src="js/vis-normalized-init.js" charset="utf-8"></script>  <!-- initializes vis.norm -->
         <script src="js/vis-velocity-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
+        <script src="js/editor-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
 
-
-        <!-- transfer function editor -->
-        <script src="lib/ace/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
-        <script>
-          var editor = ace.edit("transferFunctionEditor");
-          editor.setTheme("ace/theme/xcode");
-          var session = editor.getSession()
-          session.setMode("ace/mode/javascript");
-          session.setUseWrapMode(true);
-          session.setWrapLimitRange(40, 45);
-          editor.$blockScrolling = Infinity
-
-          // remember the editor in our namespace
-          config.tfEditor = editor;
-        </script>
 
         <!-- code related to event and input processing -->
         <script>
-            var samplingRate  = 1000 / 30;
-            var queueNextLoop = (function (callback) { window.setTimeout( callback,  samplingRate);});
-
-            var hist = {                    // history
-                normInput: {x: 0, y: 0},
-                output: {x: 0, y: 0},
-                timestamp: Date.now()
-            };
+            var eventLoopDelay  = 1000 / 30; // delay until the next input event is sampled (in milliseconds)
 
             // main event loop
             function eventLoop() {
-                // window.requestAnimFrame(eventLoop);     // event loop match the rendering frame rate
-                queueNextLoop(eventLoop);            // slower event loop
+                // util.requestAnimFrame(eventLoop);            //  Option 1: event loop match the rendering frame rate
+                window.setTimeout(eventLoop, eventLoopDelay);   //  Option 2: slower event loop, more CPU-firendly
 
                 // retrieve raw data from joystick
                 if (joystickData === null ||
-                    joystickData.distance < 0)     // papaya
+                    joystickData.distance < 30)     // papaya
                 {
                     joystickData = {
                         angle: { degree: 0, radian: 0},
@@ -172,55 +159,46 @@
                     }
                 }
 
-                // process input signal
-                var norm = normalizeInput(joystickData);
+                // normalize the input signal
+                var normDist = joystickData.distance / 50.0;
+                var norm  = {
+                    x: normDist * Math.cos(joystickData.angle.radian),
+                    y: normDist * Math.sin(joystickData.angle.radian),
+                    angle: joystickData.angle.radian,
+                    dist: normDist
+                };
 
-                // update normalized input signal vis
-                if (config.normalizedView.showTrace)
-                    visHelper.addPoint(vis.norm, norm.x, norm.y);
-                else
-                    visHelper.updatePoint(vis.norm, norm.x, norm.y);
 
-                // apply transfer function
+                // apply the transfer function and calculate the translation to be applied
                 var tDist = config.transferFunction(norm.dist);
                 var scale = tDist / norm.dist;
                 if (isNaN(scale))
                     scale = 0;
-
-                var trans = {
+                var translation = {
                     x: scale * norm.x,
-                    y: scale * norm.y,
-                    dist: tDist
+                    y: scale * norm.y
                 };
 
-                // calculate ship position
-                var currentShip = {
-                    x: game.ship.x,
-                    y: game.ship.y
+
+                // translate the ship
+                var shipNow = { x: game.ship.x, y: game.ship.y };
+                var shipNext = {
+                    x: shipNow.x + translation.x,
+                    y: shipNow.y - translation.y,
                 }
-                shipTarget = {
-                    x: currentShip.x + trans.x,
-                    y: currentShip.y - trans.y,
-                }
-
-                // indirect absolute mapping
-                // shipTarget = {
-                //     x: (trans.x + 1) * 600 / 2,
-                //     y: 350 - ((trans.y + 1) * 350 / 2),
-                // }
-
-                // move the ship
-                game.ship.addEvent({"type": "move", data: shipTarget});
+                game.ship.addEvent({"type": "move", data: shipNext});
 
 
-                // update velocity
-                var dT = (Date.now() - hist.timestamp) / 1000;
+                // update vis
+                if (config.normalizedView.showTrace)
+                    visHelper.addPoint(vis.norm, norm.x, norm.y);
+                else
+                    visHelper.updatePoint(vis.norm, norm.x, norm.y);
                 var velocity = {
                     input: util.pointDist(util.pointZero, norm),
-                    output: util.pointDist(util.pointZero, trans)
+                    output: util.pointDist(util.pointZero, translation)
                 };
                 visVelocity.updateVelocity(velocity);
-
 
                 // update text
                 $("#normX").text(norm.x.toFixed(2));
@@ -228,70 +206,16 @@
                 $("#vIn").text(velocity.input.toFixed(2));
                 $("#vOut").text(velocity.output.toFixed(2));
 
+
                 // record historical data
                 hist.normInput = norm;
-                hist.output = currentShip;
+                hist.output = shipNow;
                 hist.timestamp = Date.now();
 
             };
-
-            function normalizeInput(data) {
-                var normDist = data.distance / 50.0;
-                var normX = normDist * Math.cos(data.angle.radian);
-                var normY = normDist * Math.sin(data.angle.radian);
-                return {
-                    x: normX,
-                    y: normY,
-                    angle: data.angle.radian,
-                    dist: normDist
-                };
-            }
-
-            function updateTransferFunction() {
-                var funcBody = config.tfEditor.getValue();
-                var func = Function("d", funcBody);
-                visVelocity.updateTransferFunction(func);
-                config.transferFunction = func;
-            }
-
-            // initialize UI
-            (function () {
-
-                // fill options for transfer functions
-                $.each(transferFunctions, function (name, funcBody) {
-                    $('#tfSel').append($('<option>', {value: name, text: name}));
-                });
-                $('#tfSel').change(function (e) {
-                    var tfName = this.options[e.target.selectedIndex].text
-                    config.tfEditor.setValue(transferFunctions[tfName]);
-                });
-
-
-                // event bindings
-                $("#normTrace")
-                    .prop("checked", config.normalizedView.showTrace)
-                    .click(function() { config.normalizedView.showTrace = this.checked;} );
-
-                $('#clearNormalizedView').click( function(){ visHelper.clearView(vis.norm); });
-                $('#updateTransferFunction').click( function() { updateTransferFunction(); });
-                $("#resetShip").click( function() {
-                    game.ship.addEvent({"type": "move", data: {x: config.ship.start.x, y: config.ship.start.y}});
-                });
-
-                // set initial transfer function
-                window.setTimeout( function() {
-                    config.tfEditor.setValue(transferFunctions.identity);
-                    updateTransferFunction();
-
-                    // fire the main event loop
-                    $(document).ready(eventLoop);
-                }, 100);
-            })();
-
-
-
         </script>
 
+        <script src="js/ui-init.js" charset="utf-8"></script>  <!-- initializes vis.velo -->
 
     </body>
 </html>
