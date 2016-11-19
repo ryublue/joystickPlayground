@@ -17,10 +17,10 @@ var visHelper = ( function ($) {
     }
 
 
-    $('#clearNormalizedView').click( function(){ clearView(normalizedView); });
+    
 
 
-    // cursor visualiztion
+    // visualiztion for normalized input
     vlSpec = {
       "data": { "name": "normalizedInput", "values": [ {"x": 0,"y": 0, "id": "position"} ] },
       "mark": "point",

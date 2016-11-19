@@ -143,6 +143,8 @@
                 $("#normTrace")
                     .prop("checked", config.normalizedView.showTrace)
                     .click(function() { config.normalizedView.showTrace = this.checked;} );
+
+                $('#clearNormalizedView').click( function(){ visHelper.clearView(normalizedView); });
             })();
 
             // fire the main event loop
