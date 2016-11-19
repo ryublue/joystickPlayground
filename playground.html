@@ -47,7 +47,7 @@
                 Ship movement distance = <span id="vOut"></span><br/>
             </div>
         </div>
-        <div class="graphContainer">
+        <div class="editorContainer">
             <label>
                 Transfer function:
                 <select id="tfSel"></select>
@@ -69,7 +69,7 @@
             <canvas id="ship" width="300" height="300">
             </canvas>
         </div>
-        <div class="graphContainer">
+        <div class="shipParameterContainer">
             <div>
                 ship X: <span id="shipX"></span></br>
                 ship Y: <span id="shipY"></span>
@@ -110,12 +110,14 @@
             vis.velo = null         // vega view object for velocity view (initialized in vis-velocity-init.js)
 
             var transferFunctions = {
-                identity: "return x;",
-                constant: "if (Math.abs(x) > 0) {\n\t return Math.sign(x) * 2.5;\n} else {\n\t return 0;\n}",
-                stepConstant: "if (Math.abs(x) < 0.5) {\n\t return Math.sign(x) * 2;\n} else {\n\t return Math.sign(x) * 5;\n}",
-                linear: "return x * 5;",
-                stepLinear: "if (Math.abs(x) < 0.5) {\n\t return x * 2;\n} else {\n\t return x * 5;\n}",
-                power: "return Math.sign(x) * Math.pow(4 * x, 2);"
+                identity: "return d;",
+                constant: "if (Math.abs(d) > 0) {\n\t return Math.sign(d) * 2.5;\n} else {\n\t return 0;\n}",
+                stepConstant: "if (Math.abs(d) < 0.5) {\n\t return Math.sign(d) * 2;\n} else {\n\t return Math.sign(d) * 5;\n}",
+                linear: "return d * 5;",
+                stepLinear: "if (Math.abs(d) < 0.5) {\n\t return d * 2;\n} else {\n\t return d * 5;\n}",
+                power: "return Math.sign(d) * Math.pow(4 * d, 2);",
+                sigmoid1: "return  5 * d / Math.sqrt((1 + Math.pow(d, 2)));",
+                sigmoid2: "return  Math.sign(d) * ( 5 / (1 + Math.edp(-((d-0.7) * 15))));"
             };
 
         </script>
@@ -179,6 +181,8 @@
                     visHelper.updatePoint(vis.norm, norm.x, norm.y);
 
                 // apply transfer function
+                var normDist = util.pointDist(util.pointZero, norm);
+                config.transferFunction(normDist),
                 var trans = {
                     x: config.transferFunction(norm.x),
                     y: config.transferFunction(norm.y)
@@ -186,8 +190,8 @@
 
                 // calculate ship position
 
-                var dT = (Date.now() - hist.timestamp) / 1000;
-                var scale = 10;
+
+
                 shipTarget = {
                     x: game.ship.x + trans.x,
                     y: game.ship.y - trans.y,
@@ -203,9 +207,10 @@
                 game.ship.addEvent({"type": "move", data: shipTarget});
 
                 // update velocity
+                var dT = (Date.now() - hist.timestamp) / 1000;
                 var velocity = {
-                    input: norm.x,
-                    output: game.ship.x - hist.output.x
+                    input: util.pointDist(util.pointZero, norm),
+                    output: util.pointDist(game.ship, hist.output)
                 };
                 visVelocity.updateVelocity(velocity);
 
@@ -230,7 +235,7 @@
 
             function updateTransferFunction() {
                 var funcBody = config.tfEditor.getValue();
-                var func = Function("x", funcBody);
+                var func = Function("d", funcBody);
                 visVelocity.updateTransferFunction(func);
                 config.transferFunction = func;
             }

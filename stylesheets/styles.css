@@ -368,6 +368,12 @@ body {
     vertical-align: top;
 }
 
+.editorContainer {
+    display: inline-block;
+    vertical-align: top;
+
+}
+
 
 /* space ship */
 #background {
@@ -386,11 +392,19 @@ body {
 
 #transferFunctionEditor {
   height: 200px;
-  width: 300px;
+  width: 400px;
 }
 
 .outputContainer {
   display: inline-block;
   height: 300px;
   width: 300px;
+  margin-top: 20px;
+}
+
+.shipParameterContainer {
+  display: inline-block;
+  height: 300px;
+  width: 100px;
+  margin-top: 20px;
 }

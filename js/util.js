@@ -3,6 +3,7 @@ var util = ( function ($) {
 
     var api = {};
     api.pointDist = pointDist;
+    api.pointZero = {"x": 0.0 , "y": 0.0}
     
     return api;
 } )(jQuery);
