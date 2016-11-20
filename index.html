@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Joystick playground</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <link rel="stylesheet" href="stylesheets/styles.css" media="screen" title="no title" charset="utf-8">
+        <link rel="stylesheet" href="stylesheets/github-light.css" media="screen" title="no title" charset="utf-8">
+        <style>
+
+        </style>
+    </head>
+    <body>
+
+        <div id="zone_joystick">
+            <div id="debug">
+                <ul>
+                    <li class="distance">physical distance from the center (px) : <span class='data'></span></li>
+                    <li class="angle">
+                        angle :
+                        <ul>
+                            <li class="radian">radian : <span class='data'></span></li>
+                            <li class="degree">degree : <span class='data'></span></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <div class="zone dynamic active"></div>
+        </div>
+        <div class="graphContainer">
+            Normalized input:
+            <div id="normVis"></div>
+            <div>
+                normalized X: <span id="normX"></span></br>
+                normalized Y: <span id="normY"></span>
+            </div>
+            <label>
+                <input type="checkbox" id="normTrace"/> Show traces
+            </label>
+            <button id="clearNormalizedView">Clear</button>
+        </div>
+        <div class="graphContainer">
+            Transfer function:
+            <div id="transferVis"></div>
+            <div>
+                Normalized joystick distance = <span id="distanceInput"></span><br/>
+                Ship movement distance = <span id="distanceOutput"></span><br/>
+            </div>
+        </div>
+        <div class="editorContainer">
+            <label>
+                Transfer function:
+                <select id="tfSel"></select><br/>
+                Note: d is the normalized distance
+                <div id="transferFunctionEditor"></div>
+                <button id="updateTransferFunction">Update</button>
+            </label>
+        </div>
+
+        <div class="outputContainer">
+            <!-- The canvas for the panning background -->
+            <canvas id="background" width="300" height="300">
+                Your browser does not support canvas. Please try again with a different browser.
+            </canvas>
+            <!-- The canvas for all enemy ships and bullets -->
+            <canvas id="main" width="300" height="300">
+            </canvas>
+            <!-- The canvas the ship uses (can only move up
+             one forth the screen.) -->
+            <canvas id="ship" width="300" height="300">
+            </canvas>
+        </div>
+        <div class="shipParameterContainer">
+            <div>
+                ship X: <span id="shipX"></span></br>
+                ship Y: <span id="shipY"></span>
+            </div>
+            <button id="resetShip">Reset ship</button>
+        </div>
+
+        <br/>
+        <div class="editorContainer">
+            <label>
+                Absolute mapping (solution check):
+                <div id="absoluteMappingEditor"></div>
+                <button id="checkCode">Check</button>
+            </label>
+        </div>
+        <div class="editorContainer">
+            Result:<br/>
+            <textarea id="checkResult" rows="20" cols="30"></textarea>
+        </div>
+
+
+        <!-- JS libraries -->
+        <script src="lib/nipplejs.min.js" charset="utf-8"></script>
+        <script src="lib/d3.v3.min.js" charset="utf-8"></script>
+        <script src="lib/vega.js" charset="utf-8"></script>
+        <script src="lib/vega-lite.js" charset="utf-8"></script>
+        <script src="lib/vega-embed.js" charset="utf-8"></script>
+        <script src="lib/jquery-3.1.1.min.js" charset="utf-8"></script>
+        <script src="lib/space_shooter.js" charset="utf-8"></script>
+        <script src="lib/ace/src-min-noconflict/ace.js" charset="utf-8"></script>
+
+        <!-- globals -->
+         <script>
+            // shared configuration object
+            var config = {
+                transferFunction: null
+            };
+
+            // pre-defined transfer functions
+            var transferFunctions = {
+                identity: "return d;",
+                constant: "if (Math.abs(d) > 0) {\n\treturn Math.sign(d) * 4.5;\n} else {\n\treturn 0;\n}",
+                stepConstant: "if (Math.abs(d) < 0.3) {\n\treturn Math.sign(d) * 2;\n} else {\n\treturn Math.sign(d) * 4.5;\n}",
+                linear: "return d * 4.5;",
+                stepLinear: "if (Math.abs(d) < 0.5) {\n\treturn d * 2;\n} else {\n\treturn d * 5;\n}",
+                exponential: "return Math.sign(d) * Math.pow(4 * d, 2);",
+                sigmoid: "var a = 4.5;\nvar b = 0.4;\nvar c = 20;\nreturn Math.sign(d) * \n( a / (1 + Math.exp(-((d - b) * c))));"
+            };
+
+        </script>
+
+        <!-- initializers -->
+        <script src="js/util.js" charset="utf-8"></script> <!-- defines util module -->
+        <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
+        <script src="js/vis-norm.js" charset="utf-8"></script>  <!-- initializes normalized coordinate view: visNorm -->
+        <script src="js/vis-transfer.js" charset="utf-8"></script>  <!-- initializes transfer function view: visTransfer -->
+        <script src="js/ui-init.js" charset="utf-8"></script>  <!-- initializes main UI -->
+        <script src="js/ui-check-obfuscated.js" charset="utf-8"></script>  <!-- initializes solution checking UI -->
+
+        <!-- code related to event and input processing -->
+        <script>
+            var eventLoopDelay  = 1000 / 30; // delay until the next input event is sampled (in milliseconds)
+
+            // main event loop
+            function eventLoop() {
+                // util.requestAnimFrame(eventLoop);            //  Option 1: event loop match the rendering frame rate
+                window.setTimeout(eventLoop, eventLoopDelay);   //  Option 2: slower event loop, more CPU-firendly
+
+                // retrieve raw data from joystick
+                var joystickData = joystick.getSensorData();
+                if (joystickData === null ||
+                    joystickData.distance < 30)     // papaya
+                {
+                    joystickData = {
+                        angle: { degree: 0, radian: 0},
+                        distance: 0,
+                        position: {x: 0,y: 0}
+                    }
+                }
+
+                // normalize the input signal
+                var normDist = joystickData.distance / 50.0;
+                var norm  = {
+                    x: normDist * Math.cos(joystickData.angle.radian),  // watermelon
+                    y: normDist * Math.sin(joystickData.angle.radian),
+                    angle: joystickData.angle.radian,
+                    dist: normDist
+                };
+
+
+                // properties of output canvas
+                var oCanvas = {
+                    width: game.background.canvasWidth,
+                    height: game.background.canvasHeight
+                };
+
+                // apply the transfer function and calculate the translation to be applied
+                var tDist = config.transferFunction(norm.dist);
+                var scale = tDist / norm.dist;
+                if (isNaN(scale))       // chocolate
+                    scale = 0;
+                var translation = {
+                    x: scale * norm.x,
+                    y: scale * norm.y
+                };
+
+
+                // translate the ship
+                var shipNow = { x: game.ship.x, y: game.ship.y };
+                var shipNext = {
+                    x: shipNow.x + translation.x,        // sunflower
+                    y: shipNow.y - translation.y         // chickpea
+                }
+                game.ship.addEvent({"type": "move", data: shipNext});
+
+
+                // update UI
+                var distanceLog = {
+                    input: util.pointDist(util.pointZero, norm),
+                    output: util.pointDist(util.pointZero, translation)
+                };
+                ui.updateUI(norm, distanceLog);
+            };
+        </script>
+    </body>
+</html>
