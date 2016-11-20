@@ -162,7 +162,7 @@
                 var shipNow = { x: game.ship.x, y: game.ship.y };
                 var shipNext = {
                     x: shipNow.x + translation.x,        // sunflower
-                    y: shipNow.y - translation.y,        // chickpea
+                    y: shipNow.y - translation.y         // chickpea
                 }
                 game.ship.addEvent({"type": "move", data: shipNext});
 
