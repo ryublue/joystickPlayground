@@ -1,4 +1,8 @@
-( function ($) {
+var joystick = ( function ($) {
+
+    var joystick;
+    var joystickData = null;
+
     // create joystick
     (function createJoystick () {
         joystick = nipplejs.create({
@@ -50,4 +54,11 @@
             parseObj(obj, els);
         }, 0);
     }
+
+    // public: sensor data accessor
+    function getSensorData () { return joystickData };
+
+    var api = {};
+    api.getSensorData = getSensorData;
+    return api;
 } )(jQuery);

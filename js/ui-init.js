@@ -1,21 +1,18 @@
-// initialize UI
-(function ($) {
+var ui = (function ($, visTransfer, visNorm, game, config) {
 
     // code editor
-    var editor = ace.edit("transferFunctionEditor");
-    editor.setTheme("ace/theme/xcode");
-    var session = editor.getSession()
+    var tfEditor = ace.edit("transferFunctionEditor");
+    tfEditor.setTheme("ace/theme/xcode");
+    var session = tfEditor.getSession()
     session.setMode("ace/mode/javascript");
     session.setUseWrapMode(true);
     session.setWrapLimitRange(40, 45);
-    editor.$blockScrolling = Infinity
+    tfEditor.$blockScrolling = Infinity
 
-    // remember the editor in our namespace
-    config.tfEditor = editor;
 
 
     var updateTransferFunction = function () {
-        var funcBody = config.tfEditor.getValue();
+        var funcBody = tfEditor.getValue();
         var func = Function("d", funcBody);
         visTransfer.setTransferFunction(func);
         config.transferFunction = func;
@@ -27,27 +24,47 @@
     });
     $('#tfSel').change(function (e) {
         var tfName = this.options[e.target.selectedIndex].text
-        config.tfEditor.setValue(transferFunctions[tfName]);
+        tfEditor.setValue(transferFunctions[tfName]);
     });
 
 
     // event bindings
     $("#normTrace")
-        .prop("checked", config.normalizedView.showTrace)
-        .click(function() { config.normalizedView.showTrace = this.checked;} );
+        .click(function() { visNorm.setShowTraces(this.checked);} );
 
-    $('#clearNormalizedView').click( function(){ visHelper.clearView(vis.norm); });
+    $('#clearNormalizedView').click( function(){ visNorm.clear(); });
     $('#updateTransferFunction').click( function() { updateTransferFunction(); });
     $("#resetShip").click( function() {
-        game.ship.addEvent({"type": "move", data: {x: config.ship.start.x, y: config.ship.start.y}});
+        game.resetShip();
     });
 
     // set initial transfer function
     window.setTimeout( function() {
-        config.tfEditor.setValue(transferFunctions.identity);
+        tfEditor.setValue(transferFunctions.identity);
         updateTransferFunction();
 
         // fire the main event loop
         $(document).ready(eventLoop);
     }, 100);
-})(jQuery);
+
+
+    // public: update method for vis and text
+    function updateUI(norm, distanceLog) {
+        
+        // update vis
+        visTransfer.addDistanceLog(distanceLog);
+        visNorm.addNormPoint(norm);
+
+        // update text
+        $("#normX").text(norm.x.toFixed(2));
+        $("#normY").text(norm.y.toFixed(2));
+        $("#distanceInput").text(distanceLog.input.toFixed(2));
+        $("#distanceOutput").text(distanceLog.output.toFixed(2));
+    
+    }
+    
+
+    var api = {};
+    api.updateUI = updateUI;
+    return api;
+})(jQuery, visTransfer, visNorm, game, config);

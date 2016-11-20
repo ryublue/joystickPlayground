@@ -93,22 +93,7 @@
          <script>
             // shared configuration object
             var config = {
-                normalizedView: {
-                    showTrace: false
-                },
-                transferFunction: null,
-                tfEditor: null,    // initialized in editor-init.js
-                ship: {
-                    start: null    // initialized in shape_shooter.js
-                }
-
-            };
-
-            // globals
-            var joystick;               // joystick object
-            var joystickData = null;    // data from the joystick widget (initialized in joystick-init.js)
-            var vis = {                 // vega view objects
-                norm: null             // - normalized view (initialized in vis-normalized-init.js)
+                transferFunction: null
             };
 
             // pre-defined transfer functions
@@ -118,7 +103,7 @@
                 stepConstant: "if (Math.abs(d) < 0.3) {\n\treturn Math.sign(d) * 2;\n} else {\n\treturn Math.sign(d) * 4.5;\n}",
                 linear: "return d * 4.5;",
                 stepLinear: "if (Math.abs(d) < 0.5) {\n\treturn d * 2;\n} else {\n\treturn d * 5;\n}",
-                power: "return Math.sign(d) * Math.pow(4 * d, 2);",
+                exponential: "return Math.sign(d) * Math.pow(4 * d, 2);",
                 sigmoid: "var a = 4.5;\nvar b = 0.4;\nvar c = 20;\nreturn Math.sign(d) * \n( a / (1 + Math.exp(-((d - b) * c))));"
             };
 
@@ -126,11 +111,10 @@
 
         <!-- initializers -->
         <script src="js/util.js" charset="utf-8"></script> <!-- defines util module -->
-        <script src="js/vis-helper.js" charset="utf-8"></script> <!-- defines visHelper module -->
         <script src="js/joystick-init.js" charset="utf-8"></script> <!-- initializes joystick -->
-        <script src="js/vis-normalized-init.js" charset="utf-8"></script>  <!-- initializes vis.norm -->
-        <script src="js/vis-transfer-init.js" charset="utf-8"></script>  <!-- initializes transfer function view -->
-
+        <script src="js/vis-norm.js" charset="utf-8"></script>  <!-- initializes normalized coordinate view: visNorm -->
+        <script src="js/vis-transfer.js" charset="utf-8"></script>  <!-- initializes transfer function view: visTransfer -->
+        <script src="js/ui-init.js" charset="utf-8"></script>  <!-- initializes all UI -->
 
         <!-- code related to event and input processing -->
         <script>
@@ -142,6 +126,7 @@
                 window.setTimeout(eventLoop, eventLoopDelay);   //  Option 2: slower event loop, more CPU-firendly
 
                 // retrieve raw data from joystick
+                var joystickData = joystick.getSensorData();
                 if (joystickData === null ||
                     joystickData.distance < 30)     // papaya
                 {
@@ -155,7 +140,7 @@
                 // normalize the input signal
                 var normDist = joystickData.distance / 50.0;
                 var norm  = {
-                    x: normDist * Math.cos(joystickData.angle.radian),
+                    x: normDist * Math.cos(joystickData.angle.radian),  // watermelon
                     y: normDist * Math.sin(joystickData.angle.radian),
                     angle: joystickData.angle.radian,
                     dist: normDist
@@ -165,7 +150,7 @@
                 // apply the transfer function and calculate the translation to be applied
                 var tDist = config.transferFunction(norm.dist);
                 var scale = tDist / norm.dist;
-                if (isNaN(scale))
+                if (isNaN(scale))       // chocolate
                     scale = 0;
                 var translation = {
                     x: scale * norm.x,
@@ -176,12 +161,10 @@
                 // translate the ship
                 var shipNow = { x: game.ship.x, y: game.ship.y };
                 var shipNext = {
-                    x: shipNow.x + translation.x,
-                    y: shipNow.y - translation.y,
+                    x: shipNow.x + translation.x,        // sunflower
+                    y: shipNow.y - translation.y,        // chickpea
                 }
                 game.ship.addEvent({"type": "move", data: shipNext});
-
-
 
 
                 // update UI
@@ -189,32 +172,8 @@
                     input: util.pointDist(util.pointZero, norm),
                     output: util.pointDist(util.pointZero, translation)
                 };
-                // ui.updateUI(norm, distanceLog);  // TODO
-
-
-                visTransfer.addDistanceLog(distanceLog);
-                // visNorm.addPoint(norm);  // TODO
-
-
-                if (config.normalizedView.showTrace)
-                    visHelper.addPoint(vis.norm, norm.x, norm.y);
-                else
-                    visHelper.updatePoint(vis.norm, norm.x, norm.y);
-
-
-
-
-                // update text
-                $("#normX").text(norm.x.toFixed(2));
-                $("#normY").text(norm.y.toFixed(2));
-                $("#distanceInput").text(distanceLog.input.toFixed(2));
-                $("#distanceOutput").text(distanceLog.output.toFixed(2));
-
-
+                ui.updateUI(norm, distanceLog);
             };
         </script>
-
-        <script src="js/ui-init.js" charset="utf-8"></script>  <!-- initializes all UI -->
-
     </body>
 </html>

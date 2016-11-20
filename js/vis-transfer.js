@@ -1,4 +1,4 @@
-var visTransfer = ( function ($, vg, visHelper) {
+var visTransfer = ( function ($, vg) {
 
   var view; 
   var myInputDomain = [0, 1];
@@ -96,4 +96,4 @@ var visTransfer = ( function ($, vg, visHelper) {
     api.addDistanceLog = addDistanceLog;
     return api;
 
-} )(jQuery, vg, visHelper);
+} )(jQuery, vg);
