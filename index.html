@@ -142,7 +142,7 @@
                 // retrieve raw data from joystick
                 var joystickData = joystick.getSensorData();
                 if (joystickData === null ||
-                    joystickData.distance < 30)     // papaya
+                    joystickData.distance < 0)     // papaya
                 {
                     joystickData = {
                         angle: { degree: 0, radian: 0},
